@@ -27,7 +27,7 @@ public class CustomHandler implements WebSocketHandler {
     @Override
     public Mono<Void> handle(WebSocketSession session) {
 
-        log.info("receive websocket");
+        log.info("receive connection");
 
         URI uri = session.getHandshakeInfo().getUri();
         String query = uri.getQuery();
@@ -49,23 +49,24 @@ public class CustomHandler implements WebSocketHandler {
 
                 Mono<Void> input = session.receive()
                         .doOnNext(this::handleMessage)
-                        .doOnError(throwable -> System.out.println(throwable.getMessage()))
-                        .doOnComplete(() -> System.out.println("complete"))
-                        .doOnTerminate(() -> System.out.println("Terminate"))
+                        .doOnError(throwable -> log.error(throwable.getMessage()))
+                        .doOnComplete(() -> log.info("input complete {}", sessionId))
+                        .doOnTerminate(() -> log.info("input terminate {}", sessionId))
+                        .doOnCancel(() -> log.info("input cancel {}", sessionId))
                         .then();
 
                 Mono<Void> output = session
                         .send(Flux.create(sink -> MAP.put(sessionId, text -> sink.next(session.textMessage(text)))))
-                        .doOnError(throwable -> System.out.println(throwable.getMessage()))
-                        .doOnTerminate(() -> System.out.println("Terminate"));
+                        .doOnError(throwable -> log.info(throwable.getMessage()))
+                        .doOnCancel(() -> log.info("output cancel {}", sessionId))
+                        .doOnTerminate(() -> log.info("output terminate"));
 
                 return Mono.zip(input, output).then();
 
             }
         }
 
-        WebSocketMessage message = session.textMessage("sessionId 不能为空");
-        return session.send(Flux.just(message));
+        return session.send(Flux.just(session.textMessage("sessionId 不能为空")));
 
 
     }
