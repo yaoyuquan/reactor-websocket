@@ -10,10 +10,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 
 
@@ -41,7 +38,10 @@ public class CustomHandler implements WebSocketHandler {
         if(pair != null) {
             Optional<String> optional = Arrays.stream(pair)
                     .filter(kv -> StringUtils.startsWith(kv, "sessionId"))
-                    .map(kv -> StringUtils.split(kv, "=")[1])
+                    .map(kv -> StringUtils.split(kv, "="))
+                    .filter(Objects::nonNull)
+                    .filter(params -> params.length > 1)
+                    .map(params -> params[1])
                     .findFirst();
 
             if(optional.isPresent()) {
